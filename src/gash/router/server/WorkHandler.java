@@ -15,6 +15,7 @@
  */
 package gash.router.server;
 
+import gash.router.server.edges.EdgeInfo;
 import io.netty.util.internal.SystemPropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import pipe.common.Common;
 import pipe.common.Common.Failure;
 import pipe.work.Work.Heartbeat;
 import pipe.work.Work.Task;
@@ -68,7 +70,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			if (msg.hasBeat()) {
 				Heartbeat hb = msg.getBeat();
 				logger.debug("heartbeat from " + msg.getHeader().getNodeId());
-				channel.writeAndFlush(hb);
+				WorkMessage rB = returnHB();
+				channel.writeAndFlush(rB);
 				System.out.println("Hearbeat received");
 			} else if (msg.hasPing()) {
 				logger.info("ping from " + msg.getHeader().getNodeId());
@@ -101,6 +104,28 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		System.out.flush();
 
 	}
+
+	private WorkMessage returnHB() {
+		WorkState.Builder sb = WorkState.newBuilder();
+		sb.setEnqueued(-1);
+		sb.setProcessed(-1);
+
+		Heartbeat.Builder bb = Heartbeat.newBuilder();
+		bb.setState(sb);
+
+		Common.Header.Builder hb = Common.Header.newBuilder();
+		hb.setNodeId(state.getConf().getNodeId());
+		hb.setDestination(-1);
+		hb.setTime(System.currentTimeMillis());
+
+		WorkMessage.Builder wb = WorkMessage.newBuilder();
+		wb.setHeader(hb);
+		wb.setBeat(bb);
+		wb.setSecret(123);
+
+		return wb.build();
+	}
+
 
 	/**
 	 * a message was received from the server. Here we dispatch the message to
