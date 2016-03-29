@@ -60,6 +60,18 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 			this.dt = state.getConf().getHeartbeatDt();
 	}
 
+	public static Channel getChannel() {
+		return channel;
+	}
+
+	public EdgeList getOutboundEdges(){
+		return this.outboundEdges;
+	}
+
+	public EdgeList getInboundEdges(){
+		return this.inboundEdges;
+	}
+
 	public void createInboundIfNew(int ref, String host, int port) {
 		inboundEdges.createIfNew(ref, host, port);
 	}
@@ -105,7 +117,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 						Bootstrap b = new Bootstrap();
 						b.group(new NioEventLoopGroup());
 						b.channel(NioSocketChannel.class);
-						b.handler(new WorkInit());
+						b.handler(new WorkInit(state,false));
 						channel = b.connect(ei.getHost(), ei.getPort()).sync().channel();
 						ei.setChannel(channel);
 						ei.setActive(true);

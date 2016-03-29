@@ -16,6 +16,7 @@
 package gash.router.server;
 
 import gash.router.server.edges.EdgeInfo;
+import gash.router.server.edges.EdgeMonitor;
 import io.netty.util.internal.SystemPropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,9 +70,28 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			System.out.println("Try: Handling the client message");
 			if (msg.hasBeat()) {
 				Heartbeat hb = msg.getBeat();
-				logger.debug("heartbeat from " + msg.getHeader().getNodeId());
-				WorkMessage rB = returnHB();
-				channel.writeAndFlush(rB);
+
+				if(state.getEmon().getOutboundEdges().hasNode(msg.getHeader().getNodeId())){
+					if(state.getEmon().getInboundEdges().hasNode(msg.getHeader().getNodeId())) {
+						if(channel == EdgeMonitor.getChannel()){
+							System.out.println("Loop: Do nothing");
+						}
+						else{
+							state.getEmon().createInboundIfNew(msg.getHeader().getNodeId(),channel.remoteAddress().toString(),1200);
+							logger.debug("heartbeat from " + msg.getHeader().getNodeId());
+							WorkMessage rB = returnHB();
+							channel.writeAndFlush(rB);
+						}
+					}
+					else {
+						System.out.println("Its a response hb.. drop the packet..");
+					}
+				}else {
+					state.getEmon().createInboundIfNew(msg.getHeader().getNodeId(),channel.remoteAddress().toString(),1200);
+					logger.debug("heartbeat from " + msg.getHeader().getNodeId());
+					WorkMessage rB = returnHB();
+					channel.writeAndFlush(rB);
+				}
 				System.out.println("Hearbeat received");
 			} else if (msg.hasPing()) {
 				logger.info("ping from " + msg.getHeader().getNodeId());
