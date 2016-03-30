@@ -97,6 +97,28 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		return wb.build();
 	}
 
+	private WorkMessage createHB(int dest) {
+		WorkState.Builder sb = WorkState.newBuilder();
+		sb.setEnqueued(-1);
+		sb.setProcessed(-1);
+
+		Heartbeat.Builder bb = Heartbeat.newBuilder();
+		bb.setState(sb);
+
+		Header.Builder hb = Header.newBuilder();
+		hb.setNodeId(state.getConf().getNodeId());
+		hb.setDestination(dest);
+		hb.setTime(System.currentTimeMillis());
+		hb.setMaxHops(2);
+
+		WorkMessage.Builder wb = WorkMessage.newBuilder();
+		wb.setHeader(hb);
+		wb.setBeat(bb);
+		wb.setSecret(123);
+
+		return wb.build();
+	}
+
 	public void shutdown() {
 		forever = false;
 	}
@@ -112,20 +134,30 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 					} else {
 						// TODO create a client to the node
 						logger.info("Inside else block.....for node " + ei.getRef());
-						//logger.info("trying to connect to node " + ei.getRef());
 						logger.info("trying to connect to node " + ei.getPort()+" "+  ei.getHost());
-						Bootstrap b = new Bootstrap();
-						b.group(new NioEventLoopGroup());
-						b.channel(NioSocketChannel.class);
-						b.handler(new WorkInit(state,false));
-						channel = b.connect(ei.getHost(), ei.getPort()).sync().channel();
-						ei.setChannel(channel);
-						ei.setActive(true);
-						logger.info("connected to node " + ei.getRef());
-						// TODO create a client to the node
-						logger.info("trying to connect to node " + ei.getRef());
+
+						if(true){
+							Bootstrap b = new Bootstrap();
+							b.group(new NioEventLoopGroup());
+							b.channel(NioSocketChannel.class);
+							b.handler(new WorkInit(state,false));
+							channel = b.connect(ei.getHost(), ei.getPort()).sync().channel();
+							ei.setChannel(channel);
+							ei.setActive(true);
+							logger.info("connected to node " + ei.getRef());
+							// TODO create a client to the node
+							logger.info("trying to connect to node " + ei.getRef());
+						}
 					}
 				}
+
+				//Construct the msg for third node
+//				for (EdgeInfo ei : this.outboundEdges.map.values()) {
+//					if (ei.isActive() && ei.getChannel() != null) {
+//						WorkMessage wm = createHB(33);
+//						ei.getChannel().writeAndFlush(wm);
+//					}
+//				}
 
 				Thread.sleep(dt);
 			} catch (InterruptedException e) {

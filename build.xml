@@ -105,4 +105,12 @@
 			<arg value="runtime/route-2-self.conf" />
 		</java>
 	</target>
+
+	<target name="node-3-self" depends="init">
+		<java fork="yes" classname="gash.router.server.MessageApp">
+			<classpath refid="project.classpath" />
+			<arg value="runtime/route-3-self.conf" />
+		</java>
+	</target>
+
 </project>

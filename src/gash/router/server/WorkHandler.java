@@ -15,21 +15,15 @@
  */
 package gash.router.server;
 
-import gash.router.server.edges.EdgeInfo;
-import gash.router.server.edges.EdgeMonitor;
-import io.netty.util.internal.SystemPropertyUtil;
+import gash.router.server.workHandlers.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import pipe.common.Common;
 import pipe.common.Common.Failure;
-import pipe.work.Work.Heartbeat;
-import pipe.work.Work.Task;
 import pipe.work.Work.WorkMessage;
-import pipe.work.Work.WorkState;
 
 /**
  * The message handler processes json messages that are delimited by a 'newline'
@@ -65,48 +59,28 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		if (debug)
 			PrintUtil.printWork(msg);
 
-		// TODO How can you implement this without if-else statements?
 		try {
 			System.out.println("Try: Handling the client message");
 			if (msg.hasBeat()) {
-				Heartbeat hb = msg.getBeat();
-
-				if(state.getEmon().getOutboundEdges().hasNode(msg.getHeader().getNodeId())){
-					if(state.getEmon().getInboundEdges().hasNode(msg.getHeader().getNodeId())) {
-						if(channel == EdgeMonitor.getChannel()){
-							System.out.println("Loop: Do nothing");
-						}
-						else{
-							state.getEmon().createInboundIfNew(msg.getHeader().getNodeId(),channel.remoteAddress().toString(),1200);
-							logger.debug("heartbeat from " + msg.getHeader().getNodeId());
-							WorkMessage rB = returnHB();
-							channel.writeAndFlush(rB);
-						}
-					}
-					else {
-						System.out.println("Its a response hb.. drop the packet..");
-					}
-				}else {
-					state.getEmon().createInboundIfNew(msg.getHeader().getNodeId(),channel.remoteAddress().toString(),1200);
-					logger.debug("heartbeat from " + msg.getHeader().getNodeId());
-					WorkMessage rB = returnHB();
-					channel.writeAndFlush(rB);
-				}
-				System.out.println("Hearbeat received");
+				HeartBeatMsg heartBeatMsg = new HeartBeatMsg(state);
+				HeartBeatCommand heartBeatCommand = new HeartBeatCommand(heartBeatMsg);
+				heartBeatCommand.handleMessage(msg,channel);
 			} else if (msg.hasPing()) {
-				logger.info("ping from " + msg.getHeader().getNodeId());
-				boolean p = msg.getPing();
-				WorkMessage.Builder rb = WorkMessage.newBuilder();
-				rb.setPing(true);
-				channel.write(rb.build());
+				PingMsg pingMsg = new PingMsg(state);
+				PingCommand pingCommand = new PingCommand(pingMsg);
+				pingCommand.handleMessage(msg,channel);
 			} else if (msg.hasErr()) {
-				Failure err = msg.getErr();
-				logger.error("failure from " + msg.getHeader().getNodeId());
-				// PrintUtil.printFailure(err);
+				ErrorMsg errorMsg = new ErrorMsg(state);
+				ErrorCommand errorCommand = new ErrorCommand(errorMsg);
+				errorCommand.handleMessage(msg,channel);
 			} else if (msg.hasTask()) {
-				Task t = msg.getTask();
+				TaskMsg taskMsg = new TaskMsg(state);
+				TaskCommand taskCommand = new TaskCommand(taskMsg);
+				taskCommand.handleMessage(msg,channel);
 			} else if (msg.hasState()) {
-				WorkState s = msg.getState();
+				StateMsg stateMsg = new StateMsg(state);
+				StateCommand stateCommand = new StateCommand(stateMsg);
+				stateCommand.handleMessage(msg,channel);
 			}else {
 				System.out.println("Else part");
 			}
@@ -124,28 +98,6 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		System.out.flush();
 
 	}
-
-	private WorkMessage returnHB() {
-		WorkState.Builder sb = WorkState.newBuilder();
-		sb.setEnqueued(-1);
-		sb.setProcessed(-1);
-
-		Heartbeat.Builder bb = Heartbeat.newBuilder();
-		bb.setState(sb);
-
-		Common.Header.Builder hb = Common.Header.newBuilder();
-		hb.setNodeId(state.getConf().getNodeId());
-		hb.setDestination(-1);
-		hb.setTime(System.currentTimeMillis());
-
-		WorkMessage.Builder wb = WorkMessage.newBuilder();
-		wb.setHeader(hb);
-		wb.setBeat(bb);
-		wb.setSecret(123);
-
-		return wb.build();
-	}
-
 
 	/**
 	 * a message was received from the server. Here we dispatch the message to
