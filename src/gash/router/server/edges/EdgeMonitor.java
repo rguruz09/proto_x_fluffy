@@ -88,6 +88,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		hb.setNodeId(state.getConf().getNodeId());
 		hb.setDestination(-1);
 		hb.setTime(System.currentTimeMillis());
+		hb.setMaxHops(4);
 
 		WorkMessage.Builder wb = WorkMessage.newBuilder();
 		wb.setHeader(hb);
@@ -109,7 +110,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		hb.setNodeId(state.getConf().getNodeId());
 		hb.setDestination(dest);
 		hb.setTime(System.currentTimeMillis());
-		hb.setMaxHops(2);
+		hb.setMaxHops(4);
 
 		WorkMessage.Builder wb = WorkMessage.newBuilder();
 		wb.setHeader(hb);
