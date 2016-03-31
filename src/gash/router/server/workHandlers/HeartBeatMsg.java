@@ -24,57 +24,69 @@ public class HeartBeatMsg {
     public void handleHBMsg(Work.WorkMessage msg, Channel channel){
 
 
-        Work.Heartbeat hb = msg.getBeat();
-
-        if(msg.getHeader().getDestination() != state.getConf().getNodeId()){
-
-            if(state.getEmon().getOutboundEdges().hasNode(msg.getHeader().getDestination())){
-                EdgeInfo ef = state.getEmon().getOutboundEdges().getNode(msg.getHeader().getDestination());
-                ef.getChannel().writeAndFlush(msg);
-            }
-            else if(state.getEmon().getInboundEdges().hasNode(msg.getHeader().getDestination())){
-                EdgeInfo ef = state.getEmon().getOutboundEdges().getNode(msg.getHeader().getDestination());
-                ef.getChannel().writeAndFlush(msg);
-            }
-            else {
-                if(msg.getHeader().getDestination() == -1){
-                    System.out.println("Its a broadcast HB.. Handling for myself");
-                    System.out.println("Sender of HB is - "+msg.getHeader().getNodeId());
-                    Work.WorkMessage rB = returnHB(msg.getHeader().getNodeId());
-                    channel.writeAndFlush(rB);
-                }
-                for (EdgeInfo ei : state.getEmon().getOutboundEdges().getAllModes().values()) {
-                    if (ei.isActive() && ei.getChannel() != null) {
-                        ei.getChannel().writeAndFlush(msg);
-                    }
-                }
-            }
-        }else{
-            if(state.getEmon().getOutboundEdges().hasNode(msg.getHeader().getNodeId())){
-                if(state.getEmon().getInboundEdges().hasNode(msg.getHeader().getNodeId())) {
-                    if(channel == EdgeMonitor.getChannel()){
-                        System.out.println("Loop: Do nothing");
-                    }
-                    else{
-                        state.getEmon().createInboundIfNew(msg.getHeader().getNodeId(),channel.remoteAddress().toString(),1200);
-                        logger.debug("heartbeat from " + msg.getHeader().getNodeId());
-                        System.out.println("Sender of HB is - "+msg.getHeader().getNodeId());
-                        Work.WorkMessage rB = returnHB(msg.getHeader().getNodeId());
-                        channel.writeAndFlush(rB);
-                    }
-                }
-                else {
-                    System.out.println("Its a response hb.. drop the packet..");
-                }
-            }else {
-                state.getEmon().createInboundIfNew(msg.getHeader().getNodeId(),channel.remoteAddress().toString(),1200);
-                logger.debug("heartbeat from " + msg.getHeader().getNodeId());
-                System.out.println("Sender of HB is - "+msg.getHeader().getNodeId());
-                Work.WorkMessage rB = returnHB( msg.getHeader().getNodeId());
-                channel.writeAndFlush(rB);
-            }
-            System.out.println("Hearbeat received");
+        //If its a response msg
+        if (msg.getHeader().getDestination() == state.getConf().getNodeId()) {
+            System.out.println("Its a response msg.. drop msg");
+        } else {
+            // Respond back
+            Work.WorkMessage rB = returnHB(msg.getHeader().getNodeId());
+            channel.writeAndFlush(rB);
+            state.getEmon().createInboundIfNew(msg.getHeader().getNodeId(), channel.remoteAddress().toString(), 1200);
+            if(state.getEmon().getInboundEdges().getNode(msg.getHeader().getNodeId()).getChannel() == null)
+                state.getEmon().getInboundEdges().getNode(msg.getHeader().getNodeId()).setChannel(channel);
         }
+
+//        Work.Heartbeat hb = msg.getBeat();
+//
+//        if(msg.getHeader().getDestination() != state.getConf().getNodeId()){
+//
+//            if(state.getEmon().getOutboundEdges().hasNode(msg.getHeader().getDestination())){
+//                EdgeInfo ef = state.getEmon().getOutboundEdges().getNode(msg.getHeader().getDestination());
+//                ef.getChannel().writeAndFlush(msg);
+//            }
+//            else if(state.getEmon().getInboundEdges().hasNode(msg.getHeader().getDestination())){
+//                EdgeInfo ef = state.getEmon().getOutboundEdges().getNode(msg.getHeader().getDestination());
+//                ef.getChannel().writeAndFlush(msg);
+//            }
+//            else {
+//                if(msg.getHeader().getDestination() == -1){
+//                    System.out.println("Its a broadcast HB.. Handling for myself");
+//                    System.out.println("Sender of HB is - "+msg.getHeader().getNodeId());
+//                    Work.WorkMessage rB = returnHB(msg.getHeader().getNodeId());
+//                    channel.writeAndFlush(rB);
+//                }
+//                for (EdgeInfo ei : state.getEmon().getOutboundEdges().getAllModes().values()) {
+//                    if (ei.isActive() && ei.getChannel() != null) {
+//                        ei.getChannel().writeAndFlush(msg);
+//                    }
+//                }
+//            }
+//        }else{
+//            if(state.getEmon().getOutboundEdges().hasNode(msg.getHeader().getNodeId())){
+//                if(state.getEmon().getInboundEdges().hasNode(msg.getHeader().getNodeId())) {
+//                    if(channel == EdgeMonitor.getChannel()){
+//                        System.out.println("Loop: Do nothing");
+//                    }
+//                    else{
+//                        state.getEmon().createInboundIfNew(msg.getHeader().getNodeId(),channel.remoteAddress().toString(),1200);
+//                        logger.debug("heartbeat from " + msg.getHeader().getNodeId());
+//                        System.out.println("Sender of HB is - "+msg.getHeader().getNodeId());
+//                        Work.WorkMessage rB = returnHB(msg.getHeader().getNodeId());
+//                        channel.writeAndFlush(rB);
+//                    }
+//                }
+//                else {
+//                    System.out.println("Its a response hb.. drop the packet..");
+//                }
+//            }else {
+//                state.getEmon().createInboundIfNew(msg.getHeader().getNodeId(),channel.remoteAddress().toString(),1200);
+//                logger.debug("heartbeat from " + msg.getHeader().getNodeId());
+//                System.out.println("Sender of HB is - "+msg.getHeader().getNodeId());
+//                Work.WorkMessage rB = returnHB( msg.getHeader().getNodeId());
+//                channel.writeAndFlush(rB);
+//            }
+//            System.out.println("Hearbeat received");
+//        }
 
     }
 
@@ -90,7 +102,7 @@ public class HeartBeatMsg {
         hb.setNodeId(state.getConf().getNodeId());
         hb.setDestination(dest);
         hb.setTime(System.currentTimeMillis());
-        hb.setMaxHops(2);
+        hb.setMaxHops(4);
 
         Work.WorkMessage.Builder wb = Work.WorkMessage.newBuilder();
         wb.setHeader(hb);
@@ -99,7 +111,5 @@ public class HeartBeatMsg {
 
         return wb.build();
     }
-
-
 
 }
