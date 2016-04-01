@@ -96,7 +96,7 @@ public class CommConnection {
 	 * 
 	 * @param req
 	 *            The request
-	 * @exception An
+	 * @exceptionAn
 	 *                exception is raised if the message cannot be enqueued.
 	 */
 	public void enqueue(CommandMessage req) throws Exception {
@@ -152,11 +152,14 @@ public class CommConnection {
 		try {
 			CommandInit si = new CommandInit(null, false);
 			Bootstrap b = new Bootstrap();
-			b.group(group).channel(NioSocketChannel.class).handler(si);
+			//b.group(group).channel(NioSocketChannel.class).handler(si);
 			b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000);
 			b.option(ChannelOption.TCP_NODELAY, true);
 			b.option(ChannelOption.SO_KEEPALIVE, true);
-
+			b.group(group);
+			b.channel(NioSocketChannel.class);
+			b.handler(new CommInit(false));
+			//b.handler(new CommInit(true));
 			// Make the connection attempt.
 			channel = b.connect(host, port).syncUninterruptibly();
 
@@ -220,6 +223,8 @@ public class CommConnection {
 			System.out.flush();
 
 			// @TODO if lost, try to re-establish the connection
+			//System.out.println("Trying to re-establish the connection with server ");
+			//new MessageClient("127.0.0.1",4568);
 		}
 	}
 }

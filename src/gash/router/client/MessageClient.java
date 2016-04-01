@@ -15,6 +15,7 @@
  */
 package gash.router.client;
 
+import com.google.protobuf.ByteString;
 import pipe.common.Common.Header;
 import routing.Pipe.CommandMessage;
 
@@ -43,20 +44,66 @@ public class MessageClient {
 	public void ping() {
 		// construct the message to send
 		Header.Builder hb = Header.newBuilder();
-		hb.setNodeId(999);
+		hb.setNodeId(12);
 		hb.setTime(System.currentTimeMillis());
 		hb.setDestination(-1);
 
 		CommandMessage.Builder rb = CommandMessage.newBuilder();
 		rb.setHeader(hb);
 		rb.setPing(true);
-
+		//rb.setMessage();
 		try {
 			// direct no queue
 			// CommConnection.getInstance().write(rb.build());
 
 			// using queue
 			CommConnection.getInstance().enqueue(rb.build());
+			//CommConnection.getInstance().enqueue("hello from client");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	public void sendMessage(String message) {
+		// construct the message to send
+		Header.Builder hb = Header.newBuilder();
+		hb.setNodeId(12);
+		hb.setTime(System.currentTimeMillis());
+		hb.setDestination(-1);
+
+		CommandMessage.Builder rb = CommandMessage.newBuilder();
+		rb.setHeader(hb);
+		//rb.setPing(true);
+		rb.setMessage(message);
+
+
+		try {
+
+			// using queue
+			CommConnection.getInstance().enqueue(rb.build());
+			//CommConnection.getInstance().enqueue("hello from client");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void sendImage(byte[] image) {
+		// construct the message to send
+		Header.Builder hb = Header.newBuilder();
+		hb.setNodeId(12);
+		hb.setTime(System.currentTimeMillis());
+		hb.setDestination(-1);
+
+		CommandMessage.Builder rb = CommandMessage.newBuilder();
+		rb.setHeader(hb);
+		//rb.setPing(true);
+		rb.setMessageBytes(ByteString.copyFrom(image));
+
+
+		try {
+
+			// using queue
+			CommConnection.getInstance().enqueue(rb.build());
+			//CommConnection.getInstance().enqueue("hello from client");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
