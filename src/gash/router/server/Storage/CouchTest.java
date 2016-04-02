@@ -1,4 +1,4 @@
-package org.lightcouch.tests;
+
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
