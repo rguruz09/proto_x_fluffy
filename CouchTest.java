@@ -37,7 +37,7 @@ import com.google.gson.JsonObject;
 
 /**
  * Database integration tests.
- * @author Ahmed Yehia
+ 
  */
 public class CouchDbClientTest {
 	
